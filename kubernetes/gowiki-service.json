@@ -1,0 +1,22 @@
+{
+   "kind":"Service",
+   "apiVersion":"v1",
+   "metadata":{
+      "name":"gowiki",
+      "labels":{
+         "name":"gowiki"
+      }
+   },
+   "spec":{
+      "ports": [
+        {
+          "port":9080,
+	  "nodePort": 30080
+        }
+      ],
+      "selector":{
+         "name":"gowiki"
+      },
+      "type": "NodePort"
+   }
+}

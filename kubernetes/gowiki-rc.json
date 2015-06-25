@@ -1,0 +1,49 @@
+{
+   "kind":"ReplicationController",
+   "apiVersion":"v1",
+   "metadata":{
+      "name":"gowiki",
+      "labels":{
+         "name":"gowiki"
+      }
+   },
+   "spec":{
+      "replicas":2,
+      "selector":{
+         "name":"gowiki"
+      },
+      "template":{
+         "metadata":{
+            "labels":{
+               "name":"gowiki"
+            }
+         },
+         "spec":{
+            "containers":[
+               {
+                  "name":"gowiki",
+                  "image":"jrlangford/gowiki",
+		  "volumeMounts": [
+			  {
+			     "mountPath": "/opt/gowiki/wikiFiles",
+			     "name": "node-workspace"
+			  }
+		  ],
+                  "ports":[
+                     {
+                        "containerPort":9080
+                     }
+                  ]
+               }
+            ],
+	      "volumes": [
+		{
+		 "name": "node-workspace",
+		 "hostPath":{
+		    "path": "/tmp/node-workspace"
+		 }
+	      }]
+         }
+      }
+   }
+}
