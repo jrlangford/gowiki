@@ -2,18 +2,19 @@ package main
 
 import (
 	"errors"
-	"regexp"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 )
 
 type Page struct {
 	Title string
-	Body []byte
+	Body  []byte
 }
 
-var templates = template.Must(template.ParseFiles("edit.html", "view.html"))
+var templates = template.Must(template.ParseFiles("htmlTemplates/edit.html", "htmlTemplates/view.html"))
 var validPath = regexp.MustCompile("^/(edit|save|view)/([a-zA-Z0-9]+)$")
 
 func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
@@ -26,12 +27,12 @@ func getTitle(w http.ResponseWriter, r *http.Request) (string, error) {
 }
 
 func (p *Page) save() error {
-	filename := p.Title + ".txt"
+	filename := "wikiFiles/" + p.Title + ".txt"
 	return ioutil.WriteFile(filename, p.Body, 0600)
 }
 
 func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
+	filename := "wikiFiles/" + title + ".txt"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return nil, err
@@ -46,8 +47,8 @@ func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
 	}
 }
 
-func makeHandler(fn func (w http.ResponseWriter, r *http.Request, title string)) http.HandlerFunc {
-	return func (w http.ResponseWriter, r *http.Request) {
+func makeHandler(fn func(w http.ResponseWriter, r *http.Request, title string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		m := validPath.FindStringSubmatch(r.URL.Path)
 		if m == nil {
 			http.NotFound(w, r)
@@ -61,15 +62,18 @@ func viewHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p, err := loadPage(title)
 	if err != nil {
 		http.Redirect(w, r, "/edit/"+title, http.StatusFound)
+		fmt.Println(err)
 		return
 	}
 	renderTemplate(w, "view", p)
+	fmt.Printf("Loaded %s\n", title)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p, err := loadPage(title)
 	if err != nil {
 		p = &Page{Title: title}
+		fmt.Println(err)
 	}
 	renderTemplate(w, "edit", p)
 }
@@ -79,15 +83,22 @@ func saveHandler(w http.ResponseWriter, r *http.Request, title string) {
 	p := &Page{Title: title, Body: []byte(body)}
 	err := p.save()
 	if err != nil {
-	http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Println(err)
 		return
 	}
+	fmt.Printf("Saved %s\n", p.Title)
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
 func main() {
+	fmt.Println("Starting wiki")
 	http.HandleFunc("/view/", makeHandler(viewHandler))
 	http.HandleFunc("/edit/", makeHandler(editHandler))
 	http.HandleFunc("/save/", makeHandler(saveHandler))
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("Handlers Added")
+	err := http.ListenAndServe(":9080", nil)
+	if err != nil {
+		fmt.Printf("Error: %s\n", err)
+	}
 }
